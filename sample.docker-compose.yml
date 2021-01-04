@@ -1,0 +1,60 @@
+version: '3.7'
+services:
+ db:
+  image: mariadb:10.5-bionic
+  volumes:
+   - db_data:/var/lib/mysql
+  environment:
+    MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    MYSQL_DATABASE: ${DB_NAME}
+    MYSQL_USER: ${DB_USER}
+    MYSQL_PASSWORD: ${DB_PASSWORD}
+
+ web:
+  depends_on:
+  # Tell the WordPress container to talk to the DB container
+   - db
+  image: mattras82/pf-local-wordpress:latest
+  container_name: ${THEME_NAME}_web
+  ports: 
+   # Adjust port if necessary to avoid conflicts
+   - 80:80
+  volumes: 
+   # Map your custom theme directory to themes inside the Docker container
+   - ./wp-content/themes/${THEME_NAME}:/var/www/html/wp-content/themes/${THEME_NAME}
+   - ./log:/var/log/apache2
+   - web:/var/www/html
+  environment:
+    WORDPRESS_DB_HOST: db:3306
+    WORDPRESS_DB_USER: ${DB_USER}
+    WORDPRESS_DB_NAME: ${DB_NAME}
+    WORDPRESS_DB_PASSWORD: ${DB_PASSWORD}
+    WORDPRESS_TABLE_PREFIX: 'wp_'
+    WORDPRESS_DEBUG: 1
+    REMOTE_DB_HOST: ${REMOTE_DB_HOST}
+    REMOTE_DB_NAME: ${REMOTE_DB_NAME}
+    REMOTE_DB_USER: ${REMOTE_DB_USER}
+    REMOTE_DB_PASSWORD: ${REMOTE_DB_PASSWORD}
+    REMOTE_DB_IMPORT: ${REMOTE_DB_IMPORT}
+    LOCAL_URL: ${LOCAL_URL}
+    REMOTE_URL: ${REMOTE_URL}
+    THEME_NAME: ${THEME_NAME}
+    PLUGINS_LIST: ${PLUGINS_LIST}
+    APACHE_LOG_DIR: /var/log/apache2
+    XDEBUG_CONFIG: remote_host=${XDEBUG_HOST} remote_port=${XDEBUG_PORT} remote_enable=1 remote_autostart=1 profiler_enable_trigger=1 profiler_output_dir=/var/log/apache2/
+
+ phpmyadmin:
+  image: phpmyadmin/phpmyadmin
+  depends_on:
+   - db
+  ports:
+   - 8889:80
+  environment:
+  # Tell PhpMyAdmin which DB container to connect to
+   PMA_HOST: db
+
+volumes:
+ db_data:
+  name: ${THEME_NAME}_db_vol
+ web:
+  name: ${THEME_NAME}_web_vol

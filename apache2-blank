@@ -1,0 +1,5 @@
+#!/bin/bash
+set -euo pipefail
+
+# This is simply a hack to trick the WordPress image's docker-entrypoint
+# to run as normal from our custom entrypoint
