@@ -37,14 +37,18 @@ services:
     REMOTE_DB_PASSWORD: ${REMOTE_DB_PASSWORD}
     REMOTE_DB_IMPORT: ${REMOTE_DB_IMPORT}
     LOCAL_URL: ${LOCAL_URL}
+    LOCAL_PORT: ${LOCAL_PORT}
     REMOTE_URL: ${REMOTE_URL}
     THEME_NAME: ${THEME_NAME}
     PLUGINS_LIST: ${PLUGINS_LIST}
     APACHE_LOG_DIR: /var/log/apache2
-    XDEBUG_CONFIG: remote_host=${XDEBUG_HOST} remote_port=${XDEBUG_PORT} remote_enable=1 remote_autostart=1 profiler_enable_trigger=1 profiler_output_dir=/var/log/apache2/
+    XDEBUG_CONFIG: client_host=${XDEBUG_HOST} client_port=${XDEBUG_PORT} mode=debug output_dir=/var/log/apache2/
+    XDEBUG_MODE: ${XDEBUG_MODE}
+    XDEBUG_START_WITH_REQUEST: ${XDEBUG_START_WITH_REQUEST}
 
  phpmyadmin:
   image: phpmyadmin/phpmyadmin
+  container_name: ${THEME_NAME}_phpmyadmin
   depends_on:
    - db
   ports:
