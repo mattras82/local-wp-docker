@@ -2,6 +2,7 @@ version: '3.7'
 services:
  db:
   image: mariadb:10.5-bionic
+  container_name: ${THEME_NAME}_db
   volumes:
    - db_data:/var/lib/mysql
   environment:
@@ -18,7 +19,7 @@ services:
   container_name: ${THEME_NAME}_web
   ports: 
    # Adjust port if necessary to avoid conflicts
-   - 80:80
+   - ${LOCAL_PORT}:80
   volumes: 
    # Map your custom theme directory to themes inside the Docker container
    - ./wp-content/themes/${THEME_NAME}:/var/www/html/wp-content/themes/${THEME_NAME}

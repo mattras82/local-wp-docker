@@ -55,14 +55,10 @@ setup_dependencies() {
     echo >&2
     echo >&2 "Installing dependencies..."
     # Force the active theme to WP core while we install the PF Parent theme
-    wp db query "UPDATE ${WORDPRESS_TABLE_PREFIX}options SET option_value = 'twentytwenty' WHERE option_name IN ('template', 'stylesheet');" --allow-root
+    wp db query "UPDATE ${WORDPRESS_TABLE_PREFIX}options SET option_value = 'twentytwentytwo' WHERE option_name IN ('template', 'stylesheet');" --allow-root
 
     # Remove unneeded default plugins
     wp plugin delete --allow-root akismet hello
-
-    # This plugin has had a major update (for the worse)
-    # So we're hardcoding the version for now
-    wp plugin install https://github.com/afragen/git-updater/releases/download/9.9.10/github-updater-9.9.10.zip --activate --allow-root
 
     install_github_plugin mattras82 pf-wp-toolkit
 
