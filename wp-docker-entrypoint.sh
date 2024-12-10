@@ -41,7 +41,7 @@ update_url_in_db() {
 }
 
 update_theme_in_db() {
-    wp db query "UPDATE ${WORDPRESS_TABLE_PREFIX}options SET option_value = 'twentytwenty' WHERE option_name IN ('template', 'stylesheet');" --allow-root
+    wp db query "UPDATE ${WORDPRESS_TABLE_PREFIX}options SET option_value = 'twentytwentyfour' WHERE option_name IN ('template', 'stylesheet');" --allow-root
     wp theme activate --allow-root $THEME_NAME
 }
 
@@ -55,7 +55,7 @@ setup_dependencies() {
     echo >&2
     echo >&2 "Installing dependencies..."
     # Force the active theme to WP core while we install the PF Parent theme
-    wp db query "UPDATE ${WORDPRESS_TABLE_PREFIX}options SET option_value = 'twentytwentytwo' WHERE option_name IN ('template', 'stylesheet');" --allow-root
+    wp db query "UPDATE ${WORDPRESS_TABLE_PREFIX}options SET option_value = 'twentytwentyfour' WHERE option_name IN ('template', 'stylesheet');" --allow-root
 
     # Remove unneeded default plugins
     wp plugin delete --allow-root akismet hello
@@ -87,7 +87,11 @@ pull_remote_db() {
 		echo >&2 "Syncing local database from remote";
 		echo >&2
 		echo >&2 "Pulling remote database now. Please be patient...";
-		mysqldump -h $REMOTE_DB_HOST --no-tablespaces --user=$REMOTE_DB_USER --password=$REMOTE_DB_PASSWORD $REMOTE_DB_NAME > /tmp/dump.sql
+        if [[ -v REMOTE_DB_CERT && ! -z "$REMOTE_DB_CERT" ]]; then
+		    mysqldump -h $REMOTE_DB_HOST --no-tablespaces --user=$REMOTE_DB_USER --password=$REMOTE_DB_PASSWORD --ssl-cert=/tmp/cert.pem $REMOTE_DB_NAME $REMOTE_DB_EXTRAS > /tmp/dump.sql
+        else
+            mysqldump -h $REMOTE_DB_HOST --no-tablespaces --user=$REMOTE_DB_USER --password=$REMOTE_DB_PASSWORD $REMOTE_DB_NAME $REMOTE_DB_EXTRAS > /tmp/dump.sql
+        fi
         wp db drop --allow-root --yes
 		echo >&2
 		echo >&2 "Remote database has been pulled. Recreating local DB now.";
@@ -120,10 +124,17 @@ if [[ ! -e first_run ]]; then
     # Run the WordPress image's docker-entrypoint here
     # This will copy WP core files from /usr/src/wordpress into /var/www/html
     docker-entrypoint.sh apache2-blank
-    # Pull the remote DB
-    pull_remote_db
-    # Install dependencies
-    setup_dependencies
+    # If we have a remote DB to pull from, then we'll get everything set up.
+    # Otherwise, we'll bypass so we can let WP Core init the database
+    if [[ -v REMOTE_DB_PASSWORD && ! -z "$REMOTE_DB_PASSWORD" ]]; then
+        # Pull the remote DB
+        pull_remote_db
+        # Install dependencies
+        setup_dependencies
+    else
+        echo >&2
+        echo >&2 "Skipping database & plugin setup."
+    fi
     # Setup php.ini file so that Xdebug works properly
     setup_xdebug_ini
     # Create a file so we know it's been run before
@@ -132,6 +143,8 @@ elif [[ "$REMOTE_DB_IMPORT" = "y" || "$REMOTE_DB_IMPORT" = "Y" ]]; then
     pull_remote_db
     # Fix for remote site not using the same theme as local
     update_theme_in_db
+elif [[ -v DEPENDENCY_SETUP && "$DEPENDENCY_SETUP" = "Y" ]]; then
+    setup_dependencies
 else
     echo >&2
     echo >&2 "Skipping DB import"
