@@ -19,6 +19,9 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
 COPY wp-docker-entrypoint.sh /usr/local/bin/
 COPY apache2-blank /usr/local/bin/
 
+# RUN chmod +x /usr/local/bin/wp-docker-entrypoint.sh
+# RUN chmod +x /usr/local/bin/apache2-blank
+
 WORKDIR /var/www/html
 
 ENTRYPOINT ["wp-docker-entrypoint.sh"]

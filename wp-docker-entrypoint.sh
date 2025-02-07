@@ -1,5 +1,5 @@
-#!/bin/bash
-set -euo pipefail
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
 echo >&2
 echo >&2 "Your website is spinning up..."
@@ -81,16 +81,27 @@ setup_dependencies() {
     echo >&2 "Initial dependencies installed successfully"
 }
 
+restore_db_from_dump() {
+    echo >&2
+    echo >&2 "Restoring database from local dump file: $DB_DUMP_FILE";
+    wp db drop --allow-root --yes
+    wp db create --allow-root
+    wp db import $DB_DUMP_FILE --allow-root
+    update_url_in_db
+    echo >&2
+    echo >&2 'Local DB restored from dump file. Data is ready to roll';
+}
+
 pull_remote_db() {
     if [[ -v REMOTE_DB_PASSWORD && ! -z "$REMOTE_DB_PASSWORD" ]]; then
 		echo >&2
 		echo >&2 "Syncing local database from remote";
 		echo >&2
 		echo >&2 "Pulling remote database now. Please be patient...";
-        if [[ -v REMOTE_DB_CERT && ! -z "$REMOTE_DB_CERT" ]]; then
-		    mysqldump -h $REMOTE_DB_HOST --no-tablespaces --user=$REMOTE_DB_USER --password=$REMOTE_DB_PASSWORD --ssl-cert=/tmp/cert.pem $REMOTE_DB_NAME $REMOTE_DB_EXTRAS > /tmp/dump.sql
+        if [[ -v REMOTE_DB_EXTRAS && ! -z "$REMOTE_DB_EXTRAS" ]]; then
+		    mysqldump -h $REMOTE_DB_HOST --no-tablespaces --user=$REMOTE_DB_USER --password=$REMOTE_DB_PASSWORD $REMOTE_DB_NAME $REMOTE_DB_EXTRAS > /tmp/dump.sql
         else
-            mysqldump -h $REMOTE_DB_HOST --no-tablespaces --user=$REMOTE_DB_USER --password=$REMOTE_DB_PASSWORD $REMOTE_DB_NAME $REMOTE_DB_EXTRAS > /tmp/dump.sql
+            mysqldump -h $REMOTE_DB_HOST --no-tablespaces --user=$REMOTE_DB_USER --password=$REMOTE_DB_PASSWORD $REMOTE_DB_NAME > /tmp/dump.sql
         fi
         wp db drop --allow-root --yes
 		echo >&2
@@ -126,7 +137,10 @@ if [[ ! -e first_run ]]; then
     docker-entrypoint.sh apache2-blank
     # If we have a remote DB to pull from, then we'll get everything set up.
     # Otherwise, we'll bypass so we can let WP Core init the database
-    if [[ -v REMOTE_DB_PASSWORD && ! -z "$REMOTE_DB_PASSWORD" ]]; then
+    if [[ -v DB_DUMP_FILE && ! -z "$DB_DUMP_FILE" ]]; then
+        restore_db_from_dump
+        setup_dependencies
+    elif [[ -v REMOTE_DB_PASSWORD && ! -z "$REMOTE_DB_PASSWORD" ]]; then
         # Pull the remote DB
         pull_remote_db
         # Install dependencies
@@ -145,6 +159,8 @@ elif [[ "$REMOTE_DB_IMPORT" = "y" || "$REMOTE_DB_IMPORT" = "Y" ]]; then
     update_theme_in_db
 elif [[ -v DEPENDENCY_SETUP && "$DEPENDENCY_SETUP" = "Y" ]]; then
     setup_dependencies
+elif [[ -v DB_DUMP_FILE && ! -z "$DB_DUMP_FILE" ]]; then
+    restore_db_from_dump
 else
     echo >&2
     echo >&2 "Skipping DB import"
